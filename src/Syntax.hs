@@ -3,40 +3,45 @@ module Syntax where
 import Name
 import SrcLoc
 
-type LName = Located Name
+type PsLName = Located Name
+type PsLExpr = Located Expr
+type PsLPat = Located Pat
+type PsLType = Located Type
+type PsLDecl = Located Decl
 
 data Expr
-        = VarExpr LName
-        | AppExpr Expr Expr
-        | OpExpr Expr LName Expr
-        | LamExpr [LName] Expr
-        | LetExpr [Decl] Expr
-        | CaseExpr Expr [(Pat, Expr)]
+        = VarExpr PsLName
+        | AppExpr PsLExpr PsLExpr
+        | OpExpr PsLExpr PsLName PsLExpr
+        | LamExpr [PsLName] PsLExpr
+        | LetExpr [PsLDecl] PsLExpr
+        | CaseExpr PsLExpr [(PsLPat, PsLExpr)]
+        | Factor PsLExpr -- removed after fixity resolution
         deriving (Eq, Show)
 
 data Pat
-        = ConPat LName [Pat]
-        | VarPat LName
+        = ConPat PsLName [PsLPat]
+        | VarPat PsLName
         | WildPat
         deriving (Eq, Show)
 
 data Type
-        = ConType LName
-        | VarType LName
-        | AppType Type Type
-        | ArrType Type Type
-        | AllType [LName] Type
+        = ConType PsLName
+        | VarType PsLName
+        | AppType PsLType PsLType
+        | ArrType PsLType PsLType
+        | AllType [PsLName] PsLType
         deriving (Eq, Show)
 
 data Decl
-        = FuncDecl LName [LName] Expr
-        | FuncTyDecl LName Type
+        = FuncDecl PsLName [PsLName] PsLExpr
+        | FuncTyDecl PsLName PsLType
         deriving (Eq, Show)
 
 data TopDecl
-        = DataDecl LName [LName] [(LName, [Type])]
-        | TypeDecl LName [LName] Type
-        | Decl Decl
+        = DataDecl PsLName [PsLName] [(PsLName, [PsLType])]
+        | TypeDecl PsLName [PsLName] PsLType
+        | Decl PsLDecl
         | FixDecl
         deriving (Eq, Show)
 
@@ -45,6 +50,6 @@ newtype ImpDecl = ImpDecl ModuleName deriving (Eq, Show)
 data Program = Program
         { moduleDecl :: Maybe ModuleName
         , importDecls :: [ImpDecl]
-        , topDecls :: [TopDecl]
+        , topDecls :: [Located TopDecl]
         }
         deriving (Show)

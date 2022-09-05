@@ -1,20 +1,22 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Token where
 
 import Pretty
 
-import Data.Text
+import qualified Data.Text as T
 
 data Token
         = TokKeyword Keyword
         | TokSymbol Symbol
-        | TokVarId Text
-        | TokQVarId Text
-        | TokConId Text
-        | TokQConId Text
-        | TokVarSym Text
-        | TokQVarSym Text
-        | TokConSym Text
-        | TokQConSym Text
+        | TokVarId T.Text
+        | TokConId T.Text
+        | TokVarSym T.Text
+        | TokConSym T.Text
+        | TokQVarId T.Text
+        | TokQConId T.Text
+        | TokQVarSym T.Text
+        | TokQConSym T.Text
         | TokInt Int
         | TokEOF
         deriving (Eq, Show)
@@ -36,7 +38,6 @@ data Keyword
 
 data Symbol
         = SymArrow
-        | SymAt
         | SymBackslash
         | SymColon
         | SymComma
@@ -54,17 +55,27 @@ data Symbol
         | SymVBar
         deriving (Eq, Show)
 
+commonSymbols :: [(T.Text, Symbol)]
+commonSymbols =
+        [ ("->", SymArrow)
+        , ("\\", SymBackslash)
+        , (":", SymColon)
+        , (".", SymDot)
+        , ("=", SymEqual)
+        , ("|", SymVBar)
+        ]
+
 instance Pretty Token where
         pretty (TokKeyword k) = pretty k
         pretty (TokSymbol t) = pretty t
-        pretty (TokVarId t) = show t
-        pretty (TokQVarId t) = show t
-        pretty (TokConId t) = show t
-        pretty (TokQConId t) = show t
-        pretty (TokVarSym t) = show t
-        pretty (TokQVarSym t) = show t
-        pretty (TokConSym t) = show t
-        pretty (TokQConSym t) = show t
+        pretty (TokVarId t) = T.unpack t
+        pretty (TokQVarId t) = T.unpack t
+        pretty (TokConId t) = T.unpack t
+        pretty (TokQConId t) = T.unpack t
+        pretty (TokVarSym t) = T.unpack t
+        pretty (TokQVarSym t) = T.unpack t
+        pretty (TokConSym t) = T.unpack t
+        pretty (TokQConSym t) = T.unpack t
         pretty (TokInt n) = show n
         pretty TokEOF = "<eof>"
 
@@ -84,7 +95,6 @@ instance Pretty Keyword where
 
 instance Pretty Symbol where
         pretty SymArrow = "->"
-        pretty SymAt = "@"
         pretty SymBackslash = "\\"
         pretty SymColon = ":"
         pretty SymComma = ","

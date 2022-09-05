@@ -35,8 +35,8 @@ mkSpan pos inp len = Span (mkLoc pos) (mkLoc $ movePosn pos inp len)
 token :: (T.Text -> Token) -> Action
 token f (pos, _, _, inp) len = do
         let sp = mkSpan pos inp len
-            tok = T.take len inp
-        return $ L sp (f tok)
+            t = T.take len inp
+        return $ L sp (f t)
 
 keyword :: Keyword -> Action
 keyword = token . const . TokKeyword
@@ -50,17 +50,31 @@ varid = token TokVarId
 conid :: Action
 conid = token TokConId
 
-qconid :: Action
-qconid = token TokQConId
-
 varsym :: Action
-varsym = token TokVarSym
+varsym (pos, _, _, inp) len = do
+        let sp = mkSpan pos inp len
+            t = T.take len inp
+        case lookup t commonSymbols of
+                Just sym -> return $ L sp (TokSymbol sym)
+                Nothing -> return $ L sp (TokVarSym t)
 
 consym :: Action
 consym = token TokConSym
 
-int :: Action
-int = token (TokInt . read . T.unpack)
+qvarid :: Action
+qvarid = token TokQVarId
+
+qconid :: Action
+qconid = token TokQConId
+
+qvarsym :: Action
+qvarsym = token TokQVarSym
+
+qconsym :: Action
+qconsym = token TokQConSym
+
+integer :: Action
+integer = token (TokInt . read . T.unpack)
 
 ----------------------------------------------------------------
 -- Monad

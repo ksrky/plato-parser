@@ -40,5 +40,5 @@ process inp =
         Error.catchError $ do
                 (res, st) <- Error.eitherToMonadThrow (Monad.parse inp Parser.parser)
                 let opdict = opDict (parser_ust st)
-                res' <- resolve opdict res
+                res' <- resolveFixity opdict res
                 print res'

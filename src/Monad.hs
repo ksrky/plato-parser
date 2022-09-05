@@ -2,9 +2,12 @@
 
 module Monad where
 
+import qualified Fixity as F
+
 import Control.Monad.State.Class
 import Control.Monad.Trans
 import qualified Data.ByteString.Internal as BS
+import Data.Map.Strict as M
 import qualified Data.Text as T
 import Data.Word
 
@@ -46,7 +49,7 @@ advancePosn (PsPosn a l _) '\n' = PsPosn (a + 1) (l + 1) 1
 advancePosn (PsPosn a l c) _ = PsPosn (a + 1) l (c + 1)
 
 movePosn :: PsPosn -> T.Text -> Int -> PsPosn
-movePosn pos inp 0 = pos
+movePosn pos _ 0 = pos
 movePosn pos inp len = case T.uncons inp of
         Nothing -> pos
         Just (c, inp') -> movePosn (advancePosn pos c) inp' (len -1)
@@ -89,19 +92,18 @@ instance Monad m => MonadState PsState (ParserT m) where
 instance MonadTrans ParserT where
         lift c = ParserT $ \s -> c >>= (\x -> return (x, s))
 
-parse :: Monad m => T.Text -> ParserT m a -> m a
+parse :: T.Text -> ParserT m a -> m (a, PsState)
 parse inp p =
-        fst
-                <$> runParserT
-                        p
-                        PsState
-                                { parser_pos = startPos
-                                , parser_inp = inp
-                                , parser_chr = '\n'
-                                , parser_bytes = []
-                                , parser_scd = 0
-                                , parser_ust = initUserState
-                                }
+        runParserT
+                p
+                PsState
+                        { parser_pos = startPos
+                        , parser_inp = inp
+                        , parser_chr = '\n'
+                        , parser_bytes = []
+                        , parser_scd = 0
+                        , parser_ust = initUserState
+                        }
 
 startPos :: PsPosn
 startPos = PsPosn 0 1 1
@@ -136,7 +138,7 @@ setStartCode scd = modify $ \s -> s{parser_scd = scd}
 ----------------------------------------------------------------
 data PsUserState = PsUserState
         { commentDepth :: Int
-        , stringValue :: String
+        , opDict :: F.OpDict
         }
 
 getUserState :: Monad m => ParserT m PsUserState
@@ -149,13 +151,21 @@ initUserState :: PsUserState
 initUserState =
         PsUserState
                 { commentDepth = 0
-                , stringValue = ""
+                , opDict = M.empty
                 }
 
 getCommentDepth :: Monad m => ParserT m Int
 getCommentDepth = commentDepth <$> getUserState
 
 setCommentDepth :: Monad m => Int -> ParserT m ()
-setCommentDepth ss = do
+setCommentDepth cd = do
         ust <- getUserState
-        setUserState ust{commentDepth = ss}
+        setUserState ust{commentDepth = cd}
+
+getOpDict :: Monad m => ParserT m F.OpDict
+getOpDict = opDict <$> getUserState
+
+setOpDict :: Monad m => F.OpDict -> ParserT m ()
+setOpDict od = do
+        ust <- getUserState
+        setUserState ust{opDict = od}

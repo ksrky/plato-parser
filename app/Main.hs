@@ -3,6 +3,7 @@ module Main where
 import Error
 import Monad
 import Parser
+import Resolver
 
 import Control.Monad.IO.Class
 import qualified Data.Text as T
@@ -35,4 +36,9 @@ processFile src = do
         process inp
 
 process :: T.Text -> IO ()
-process inp = Error.catchError $ print =<< Error.eitherToMonadThrow (Monad.parse inp Parser.parser)
+process inp =
+        Error.catchError $ do
+                (res, st) <- Error.eitherToMonadThrow (Monad.parse inp Parser.parser)
+                let opdict = opDict (parser_ust st)
+                res' <- resolve opdict res
+                print res'

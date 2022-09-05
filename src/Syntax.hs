@@ -8,8 +8,7 @@ type LName = Located Name
 data Expr
         = VarExpr LName
         | AppExpr Expr Expr
-        | TAppExpr Expr Type
-        | OpExpr Expr [Type] Expr
+        | OpExpr Expr LName Expr
         | LamExpr [LName] Expr
         | LetExpr [Decl] Expr
         | CaseExpr Expr [(Pat, Expr)]

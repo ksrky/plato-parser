@@ -27,6 +27,7 @@ dependencies:
   - base >= 4.7 && < 5
   - array
   - bytestring
+  - containers
   - haskeline
   - mtl
   - safe-exceptions
@@ -42,6 +43,8 @@ ghc-options:
   - -Wmissing-home-modules
   - -Wpartial-fields
   - -Wredundant-constraints
+  - -Wno-missing-export-lists
+  - -Wno-name-shadowing
 
 library:
   source-dirs: src

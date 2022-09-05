@@ -8,9 +8,13 @@ data Token
         = TokKeyword Keyword
         | TokSymbol Symbol
         | TokVarId Text
+        | TokQVarId Text
         | TokConId Text
+        | TokQConId Text
         | TokVarSym Text
+        | TokQVarSym Text
         | TokConSym Text
+        | TokQConSym Text
         | TokInt Int
         | TokEOF
         deriving (Eq, Show)
@@ -54,9 +58,13 @@ instance Pretty Token where
         pretty (TokKeyword k) = pretty k
         pretty (TokSymbol t) = pretty t
         pretty (TokVarId t) = show t
+        pretty (TokQVarId t) = show t
         pretty (TokConId t) = show t
+        pretty (TokQConId t) = show t
         pretty (TokVarSym t) = show t
+        pretty (TokQVarSym t) = show t
         pretty (TokConSym t) = show t
+        pretty (TokQConSym t) = show t
         pretty (TokInt n) = show n
         pretty TokEOF = "<eof>"
 

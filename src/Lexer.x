@@ -34,6 +34,12 @@ $symbol = [\:\.\<\=\>\&\|\!\$\*\+\?\#\~\-\[\]\^\/]
 @varsym = ($symbol # \:) $symbol*
 @consym = \: $symbol+
 
+@qual = (@conid \.)+
+@qvarid = @qual @varid
+@qconid = @qual @conid
+@qvarsym = @qual @varsym
+@qconsym = @qual @consym
+
 @decimal = $digit+
 
 tokens :-
@@ -79,6 +85,7 @@ tokens :-
 
 <0> @varid                      { varid }
 <0> @conid                      { conid }
+<0> @qconid                     { qconid }
 <0> @varsym                     { varsym }
 <0> @consym                     { consym }
 
@@ -121,5 +128,4 @@ endComment (pos,_,_,inp) len = do
     setCommentDepth (depth - 1)
     when (depth == 1) $ setStartCode 0
     alexMonadScan
-    
 }

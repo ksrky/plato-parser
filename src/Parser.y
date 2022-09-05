@@ -12,6 +12,7 @@ import SrcLoc
 import Monad
 import Helper
 import Pretty
+import Fixity
 
 import qualified Data.Text as T
 import Control.Monad.State
@@ -58,6 +59,7 @@ import Control.Monad.State
 
 varid                           { (mkLVarId -> Just $$) }
 conid                           { (mkLConId -> Just $$) }
+qconid                          { (mkLQConId -> Just $$) }
 varsym                          { (mkLVarSym -> Just $$) }
 consym                          { (mkLConSym -> Just $$) }
 
@@ -65,9 +67,22 @@ int                             { (mkLInt -> Just $$) }
 
 %%
 
-program     : body                                  { Program Nothing (fst $1) (snd $1) }
+program     : 'module' modid ';' body               { Program (Just $2) (fst $4) (snd $4) }
+            | body                                  { Program Nothing (fst $1) (snd $1) }
 
-body        : topdecls                              { ([], $1) }
+body        : impdecls ';' topdecls                 { ($1, $3) }
+            | topdecls                              { ([], $1) }
+
+impdecls    :: { [ImpDecl] }
+            : impdecl ';' impdecls                  { $1 : $3 }
+            | {- empty -}                           { [] }
+
+impdecl     :: { ImpDecl }
+            : 'import' modid                        { ImpDecl $2 }
+
+modid       :: { ModuleName }
+            : qconid                                { ModuleName (splitModid $1) }
+            | conid                                 { ModuleName (splitModid $1) }
 
 topdecls    :: { [TopDecl] }
             : topdecl ';' topdecls                  { $1 : $3 }
@@ -77,6 +92,7 @@ topdecl     :: { TopDecl }
             : 'data' conid tyvars '=' constrs       { DataDecl (id2tyconName $2) $3 $5 }
             | 'data' conid tyvars                   { DataDecl (id2tyconName $2) $3 [] }
             | conid tyvars '=' type                 { TypeDecl (id2tyconName $1) $2 $4 }
+            | fixdecl                               {% $1 >> return FixDecl }
             | decl                                  { Decl $1 }
 
 decls       :: { [Decl] }
@@ -88,6 +104,11 @@ decl        :: { Decl }
             | '(' varsym ')' ':' type               { FuncTyDecl (id2varName $2) $5 }
             | varid vars '=' expr                   { FuncDecl (id2varName $1) $2 $4 }
             | '(' varsym ')' vars '=' expr          { FuncDecl (id2varName $2) $4 $6 }
+
+fixdecl     :: { Parser () }
+            : 'infix' int op                        { setFixity $3 $2 Nonfix }
+            | 'infixl' int op                       { setFixity $3 $2 Leftfix }
+            | 'infixr' int op                       { setFixity $3 $2 Rightfix }
 
 types       :: { [Type] }
             : atype types                           { $1 : $2 }
@@ -121,12 +142,16 @@ tyvars      :: { [LName] }
             : varid tyvars                          { id2tyvarName $1 : $2 }
             | {- empty -}                           { [] }
 
+op          :: { LName }
+            : varsym                                { id2varName $1 }
+            | consym                                { id2conName $1 }
+        
 expr        :: { Expr }
-            : lexpr                                 { $1 }
+            : infixexpr                             { $1 }
 
-attyargs    :: { [Type] }
-            : '@' atype attyargs                    { $2 : $3 }
-            | {- empty -}                           { [] }
+infixexpr   :: { Expr }
+            : lexpr op infixexpr                    { OpExpr $1 $2 $3 }
+            | lexpr                                 { $1 }
 
 lexpr       :: { Expr }
             : '\\' varid vars '->' expr             { LamExpr (id2varName $2 : $3) $5 }
@@ -136,7 +161,6 @@ lexpr       :: { Expr }
 
 fexpr       :: { Expr }
             : fexpr aexpr                           { AppExpr $1 $2 }
-            | fexpr '@' atype                       { TAppExpr $1 $3 }
             | aexpr                                 { $1 }
 
 aexpr       :: { Expr }
@@ -171,9 +195,19 @@ apat        :: { Pat }
             | '_'                                   { WildPat }
 
 {
-parseError :: Located Token -> Parser a
-parseError (L sp tok) = lift $ throwPsError sp $ "parse error at '" ++ pretty tok ++ "'"
-
+splitModid :: Located T.Text -> [Name]
+splitModid = loop 0 . ((`T.snoc` '.') <$>)
+  where
+    loop :: Int -> Located T.Text -> [Name]
+    loop cnt (L sp t) =
+        let xs = T.unpack t
+         in if (xs !! cnt) == '.'
+            then conName (T.take cnt t) : loop 0 (L sp (T.drop (cnt + 1) t))
+            else loop (cnt + 1) (L sp t)
+ 
+----------------------------------------------------------------
+-- mkLocated
+----------------------------------------------------------------
 mkLVarId :: Located Token -> Maybe (Located T.Text)
 mkLVarId (L sp (TokVarId t)) = Just (L sp t)
 mkLVarId _ = Nothing
@@ -181,6 +215,10 @@ mkLVarId _ = Nothing
 mkLConId :: Located Token -> Maybe (Located T.Text)
 mkLConId (L sp (TokConId t)) = Just (L sp t)
 mkLConId _ = Nothing
+
+mkLQConId :: Located Token -> Maybe (Located T.Text)
+mkLQConId (L sp (TokQConId t)) = Just (L sp t)
+mkLQConId _ = Nothing
 
 mkLVarSym :: Located Token -> Maybe (Located T.Text)
 mkLVarSym (L sp (TokVarSym t)) = Just (L sp t)
@@ -194,6 +232,9 @@ mkLInt :: Located Token -> Maybe (Located Int)
 mkLInt (L sp (TokInt n)) = Just (L sp n)
 mkLInt _ = Nothing
 
+----------------------------------------------------------------
+-- id2Name
+----------------------------------------------------------------
 id2varName :: Located T.Text -> LName
 id2varName (L sp t)= L sp (varName t)
 

@@ -27,6 +27,7 @@ data PsError = PsError {errorMessage :: String, errorSpan :: Span} deriving (Sho
 
 instance Pretty PsError where
         pretty (PsError msg (Span s e)) = pretty s ++ "-" ++ pretty e ++ ": " ++ msg
+        pretty (PsError msg NoSpan) = msg
 
 instance Exception PsError
 

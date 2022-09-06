@@ -4,6 +4,7 @@ module Resolver where
 
 import Error
 import Fixity
+import Name
 import SrcLoc
 import Syntax
 
@@ -38,7 +39,7 @@ instance Resolver Expr where
                                 return $ AppExpr e1' e2'
                         e@OpExpr{} -> do
                                 toks <- linear od (L sp e)
-                                res <- parseNeg (Op undefined (-1) Nonfix) toks
+                                res <- parseNeg (Op (L NoSpan (varName "")) (-1) Nonfix) toks
                                 case res of
                                         (L _ rese, []) -> return rese
                                         _ -> throwPsError sp "illegal infix expression"

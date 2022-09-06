@@ -1,6 +1,6 @@
 -- using common symbol as op
 
-data Bool = True | False;
+import Plato.Bool;
 
 data Nat = Zero | Succ Nat;
 

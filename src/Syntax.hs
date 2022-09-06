@@ -45,11 +45,11 @@ data TopDecl
         | FixDecl
         deriving (Eq, Show)
 
-newtype ImpDecl = ImpDecl ModuleName deriving (Eq, Show)
+newtype ImpDecl = ImpDecl (Located ModuleName) deriving (Eq, Show)
 
 data Program = Program
-        { moduleDecl :: Maybe ModuleName
-        , importDecls :: [ImpDecl]
+        { moduleDecl :: Maybe (Located ModuleName)
+        , importDecls :: [Located ImpDecl]
         , topDecls :: [Located TopDecl]
         }
         deriving (Show)

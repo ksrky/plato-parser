@@ -15,20 +15,25 @@ data Loc
 instance Pretty Loc where
         pretty (Loc l c) = show l ++ ":" ++ show c
 
-data Span = Span
-        { spanStart :: Loc
-        , spanEnd :: Loc
-        }
+data Span
+        = Span
+                Loc -- start loc
+                Loc -- end loc
+        | NoSpan
         deriving (Eq, Ord, Show)
 
 instance Pretty Span where
         pretty (Span s e) = pretty s ++ "-" ++ pretty e
+        pretty NoSpan = ""
 
 combineSpans :: Span -> Span -> Span
 combineSpans (Span s1 e1) (Span s2 e2) = Span (s1 `min` s2) (e1 `max` e2)
+combineSpans (Span s1 e1) NoSpan = Span s1 e1
+combineSpans NoSpan (Span s2 e2) = Span s2 e2
+combineSpans NoSpan NoSpan = NoSpan
 
 concatSpans :: [Span] -> Span
-concatSpans [] = undefined
+concatSpans [] = NoSpan
 concatSpans [sp] = sp
 concatSpans (sp : sps) = combineSpans sp (concatSpans sps)
 

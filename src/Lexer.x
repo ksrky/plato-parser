@@ -28,12 +28,9 @@ $special = [\(\)\,\;\[\]\`\{\}\_\"\']
 $common = [\!\#\$\%\&\*\+\.\/\<\=\>\?\@\\\^\|\-\~\:]
 $symbol = $common
 
-@reservedid = case | data | forall | import | in
-            | of | let | module | where
 @varid = $small [$alpha $digit \_ \']*
 @conid = $large [$alpha $digit \_ \']*
 
-@reservedop = \-\> | \= | \| | \:
 @varsym = ($symbol # \:) $symbol*
 @consym = \: $symbol+
 
@@ -50,10 +47,15 @@ tokens :-
 <0> $white_nonl+                ;
 <0> $nl                         ;
 
-<0> "--".*                      ;
+-- | line comment
+<0> "--" ~$symbol .*            ;
+<0> "--" \-+ ~$symbol .*        ;
+
+-- | block comment
 <0, comment> "{-"               { beginComment }
-<comment> [^$white]*"-}"        { endComment }
-<comment> [^$white]+            ;
+<comment> "-}"                  { endComment }
+<comment> $printable+           ;
+<comment> $nl+                  ;
 
 
 -- | keyword

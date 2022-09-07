@@ -4,12 +4,15 @@ module Monad where
 
 import qualified Fixity as F
 
+import Control.Exception.Safe
 import Control.Monad.State.Class
 import Control.Monad.Trans
 import qualified Data.ByteString.Internal as BS
 import Data.Map.Strict as M
 import qualified Data.Text as T
 import Data.Word
+
+type Parser a = ParserT (Either SomeException) a
 
 ----------------------------------------------------------------
 -- Basic interface
@@ -31,7 +34,7 @@ alexInputPrevChar :: AlexInput -> Char
 alexInputPrevChar (_, c, _, _) = c
 
 ----------------------------------------------------------------
--- Parser Position
+-- Parser position
 ----------------------------------------------------------------
 data PsPosn
         = PsPosn
@@ -55,7 +58,7 @@ movePosn pos inp len = case T.uncons inp of
         Just (c, inp') -> movePosn (advancePosn pos c) inp' (len -1)
 
 ----------------------------------------------------------------
--- Parser Monad
+-- Parser monad
 ----------------------------------------------------------------
 data PsState = PsState
         { parser_pos :: !PsPosn -- position at current input location

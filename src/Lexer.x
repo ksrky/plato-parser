@@ -6,7 +6,7 @@ module Lexer where
 
 import Monad
 import Token
-import Helper
+import Action
 import SrcLoc
 import Error
 
@@ -44,8 +44,7 @@ $symbol = $common
 
 tokens :-
 
-<0> $white_nonl+                ;
-<0> $nl                         ;
+<0> $white+                     ;
 
 -- | line comment
 <0> "--" ~$symbol .*            ;

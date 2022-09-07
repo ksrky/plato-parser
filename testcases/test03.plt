@@ -1,6 +1,6 @@
 module Plato.List;
 
-data List a = Nil | (::) a (List a);
+data List a = Nil | a :: (List a);
 
 infixr 5 ::;
 

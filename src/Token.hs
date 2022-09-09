@@ -42,7 +42,6 @@ data Symbol
         | SymColon
         | SymComma
         | SymDash
-        | SymDot
         | SymEqual
         | SymLBrace
         | SymLBrack
@@ -53,6 +52,8 @@ data Symbol
         | SymSemicolon
         | SymUScore
         | SymVBar
+        | SymVLBrace
+        | SymVRBrace
         deriving (Eq, Show)
 
 commonSymbols :: [(T.Text, Symbol)]
@@ -60,11 +61,9 @@ commonSymbols =
         [ ("->", SymArrow)
         , ("\\", SymBackslash)
         , (":", SymColon)
-        , (".", SymDot)
         , ("=", SymEqual)
         , ("|", SymVBar)
         ]
-
 instance Pretty Token where
         pretty (TokKeyword k) = pretty k
         pretty (TokSymbol t) = pretty t
@@ -99,7 +98,6 @@ instance Pretty Symbol where
         pretty SymColon = ":"
         pretty SymComma = ","
         pretty SymDash = "'"
-        pretty SymDot = "."
         pretty SymEqual = "="
         pretty SymLBrace = "{"
         pretty SymLBrack = "["
@@ -110,3 +108,5 @@ instance Pretty Symbol where
         pretty SymSemicolon = ";"
         pretty SymUScore = "_"
         pretty SymVBar = "|"
+        pretty SymVLBrace = "{"
+        pretty SymVRBrace = "}"

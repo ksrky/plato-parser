@@ -45,7 +45,6 @@ import qualified Data.Map.Strict as M
 ','                             { L $$ (TokSymbol SymComma) }
 ':'                             { L $$ (TokSymbol SymColon) }
 '\''                            { L $$ (TokSymbol SymDash) }
-'.'                             { L $$ (TokSymbol SymDot) }
 '='                             { L $$ (TokSymbol SymEqual) }
 '{'                             { L $$ (TokSymbol SymLBrace) }
 '['                             { L $$ (TokSymbol SymLBrack) }
@@ -56,6 +55,8 @@ import qualified Data.Map.Strict as M
 ';'                             { L $$ (TokSymbol SymSemicolon) }
 '_'                             { L $$ (TokSymbol SymUScore) }
 '|'                             { L $$ (TokSymbol SymVBar) }
+'v{'                            { L $$ (TokSymbol SymVLBrace) }
+'v}'                            { L $$ (TokSymbol SymVRBrace) }
 
 varid                           { (mkLVarId -> Just $$) }
 conid                           { (mkLConId -> Just $$) }
@@ -71,8 +72,8 @@ int                             { (mkLInt -> Just $$) }
 program     : 'module' modid ';' body               { Program (Just $2) (fst $4) (snd $4) }
             | body                                  { Program Nothing (fst $1) (snd $1) }
 
-body        : impdecls ';' topdecls                 { ($1, $3) }
-            | topdecls                              { ([], $1) }
+body        : impdecls ';' topdecls                 { ($1, reverse $3) }
+            | topdecls                              { ([], reverse $1) }
 
 impdecls    :: { [Located ImpDecl] }
             : impdecls ';' impdecl                  { $3 : $1 }
@@ -88,7 +89,7 @@ modid       :: { Located ModuleName }
 
 -- | Declarations
 topdecls    :: { [Located TopDecl] }
-            : topdecl ';' topdecls                  { $1 : $3 }
+            : topdecls ';' topdecl                  { $3 : $1 }
             | {- empty -}                           { [] }
 
 topdecl     :: { Located TopDecl }
@@ -120,8 +121,7 @@ types       :: { [Located Type] }
             | {- empty -}                           { [] }
 
 type        :: { Located Type }
-            : 'forall' tyvar tyvars '.' type        { sLL (uLoc $1) $5 (AllType ($2 : $3) $5) }
-            | '{' tyvar tyvars '}' '->' type        { sLL (uLoc $1) $6 (AllType ($2 : $3) $6) }
+            : '{' tyvar tyvars '}' '->' type        { sLL (uLoc $1) $6 (AllType ($2 : $3) $6) }
             | btype '->' type                       { sLL $1 $3 (ArrType $1 $3) }
             | '(' type ')'                          { $2 }
             | btype                                 { $1 }
@@ -166,7 +166,9 @@ infixexpr   :: { Located Expr }
 lexpr       :: { Located Expr }
             : '\\' var vars '->' expr               { sLL (uLoc $1) $5 (LamExpr ($2 : $3) $5) }
             | 'let' '{' decls '}' 'in' expr         { sLL (uLoc $1) $6 (LetExpr $3 $6) }
+            | 'let' 'v{' decls close 'in' expr      { sLL (uLoc $1) $6 (LetExpr $3 $6) }
             | 'case' expr 'of' '{' alts '}'         { L (combineSpans $1 $6) (CaseExpr $2 $5) }
+            | 'case' expr 'of' 'v{' alts close      { L (combineSpans $1 $6) (CaseExpr $2 $5) }
             | fexpr                                 { $1 }
 
 fexpr       :: { Located Expr }
@@ -188,6 +190,7 @@ var  		:: { Located Name }
 -- | Alternatives
 alts        :: { [(Located Pat, Located Expr)] }
             : alt ';' alts                          { $1 : $3 }
+            | alt                                   { [$1] }
             | {- empty -}                           { [] }
 
 alt         :: { (Located Pat, Located Expr) }
@@ -212,15 +215,41 @@ apat        :: { Located Pat }
             | varid                                 { sL $1 (VarPat (mkLvarName $1)) }
             | '_'                                   { L $1 WildPat }
 
+-- | for parser-error(t) rule
+close       :: { Span }
+            : 'v}'                                  { $1 }
+            | error                                 {% popLayoutLevel $1 }
+
 {
 parseError :: Located Token -> Parser a
-parseError (L sp tok) = lift $ throwPsError sp $ "parse error at '" ++ pretty tok ++ "'"
+parseError (L sp tok) = do
+    ts <- getPrevTokens
+    scd <- getStartCode
+    il <- getIndentLevels
+    lift $ throwPsError sp $ "parse error at '" ++ pretty tok
+        ++ "'\n" ++ unwords (map pretty (reverse ts))
+        ++ "\nstart code=" ++ show scd
+        ++ "\nindent levels=" ++ show il
 
 setFixity :: Located Name -> Located Int -> Fixity -> Parser ()
 setFixity lop@(L _ op) (L sp prec) fix = do
-        opdict <- getOpDict
-        unless (minPrec <= prec && prec <= maxPrec) $ lift $ throwPsError sp $ "invalid precedence " ++ show prec
-        setOpDict $ M.insert op (Op lop prec fix) opdict
+    opdict <- getOpDict
+    unless (minPrec <= prec && prec <= maxPrec) $ lift $ throwPsError sp $ "invalid precedence " ++ show prec
+    setOpDict $ M.insert op (Op lop prec fix) opdict
+
+pushVLBrace :: Parser ()
+pushVLBrace = do
+    il <- getIndentLevels
+    setIndentLevels (0 : il)
+
+popLayoutLevel :: Located Token -> Parser Span
+popLayoutLevel t@(L sp _) = do
+    il <- getIndentLevels
+    case il of
+        m : ms | m /= 0 -> do
+            setIndentLevels ms
+            return sp
+        _ -> lift $ throwPsError sp $ "parse error"
 
 splitModid :: Located T.Text -> [Name]
 splitModid = loop 0 . ((`T.snoc` '.') <$>)

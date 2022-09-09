@@ -2,7 +2,8 @@
 
 module Monad where
 
-import qualified Fixity as F
+import Fixity
+import Token
 
 import Control.Exception.Safe
 import Control.Monad.State.Class
@@ -140,8 +141,10 @@ setStartCode scd = modify $ \s -> s{parser_scd = scd}
 -- PsUserState
 ----------------------------------------------------------------
 data PsUserState = PsUserState
-        { commentDepth :: Int
-        , opDict :: F.OpDict
+        { prevTokens :: [Token]
+        , commentDepth :: Int
+        , opDict :: OpDict
+        , indentLevels :: [Int]
         }
 
 getUserState :: Monad m => ParserT m PsUserState
@@ -153,9 +156,24 @@ setUserState ust = modify $ \s -> s{parser_ust = ust}
 initUserState :: PsUserState
 initUserState =
         PsUserState
-                { commentDepth = 0
+                { prevTokens = []
+                , commentDepth = 0
                 , opDict = M.empty
+                , indentLevels = []
                 }
+
+getPrevTokens :: Monad m => ParserT m [Token]
+getPrevTokens = prevTokens <$> getUserState
+
+setPrevTokens :: Monad m => [Token] -> ParserT m ()
+setPrevTokens ts = do
+        ust <- getUserState
+        setUserState ust{prevTokens = ts}
+
+addPrevTokens :: Monad m => Token -> ParserT m ()
+addPrevTokens t = do
+        ts <- getPrevTokens
+        setPrevTokens (t : ts)
 
 getCommentDepth :: Monad m => ParserT m Int
 getCommentDepth = commentDepth <$> getUserState
@@ -165,10 +183,18 @@ setCommentDepth cd = do
         ust <- getUserState
         setUserState ust{commentDepth = cd}
 
-getOpDict :: Monad m => ParserT m F.OpDict
+getOpDict :: Monad m => ParserT m OpDict
 getOpDict = opDict <$> getUserState
 
-setOpDict :: Monad m => F.OpDict -> ParserT m ()
+setOpDict :: Monad m => OpDict -> ParserT m ()
 setOpDict od = do
         ust <- getUserState
         setUserState ust{opDict = od}
+
+getIndentLevels :: Monad m => ParserT m [Int]
+getIndentLevels = indentLevels <$> getUserState
+
+setIndentLevels :: Monad m => [Int] -> ParserT m ()
+setIndentLevels il = do
+        ust <- getUserState
+        setUserState ust{indentLevels = il}

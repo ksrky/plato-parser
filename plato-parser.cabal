@@ -28,6 +28,7 @@ library
       Action
       Error
       Fixity
+      Layout
       Lexer
       Monad
       Name

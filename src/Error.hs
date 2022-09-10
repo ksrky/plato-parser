@@ -7,7 +7,7 @@ import Control.Exception.Safe
 import Control.Monad.IO.Class
 
 ----------------------------------------------------------------
--- General Error
+-- Error Handling
 ----------------------------------------------------------------
 eitherToMonadThrow :: (MonadThrow m, Exception e) => Either e a -> m a
 eitherToMonadThrow (Left e) = throw e
@@ -17,6 +17,7 @@ catchError :: (MonadCatch m, MonadIO m) => m () -> m ()
 catchError =
         ( `catches`
                 [ Handler $ \e@PsError{} -> liftIO $ putStrLn $ pretty e
+                -- other exceptions
                 ]
         )
 

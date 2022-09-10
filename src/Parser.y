@@ -12,6 +12,7 @@ import SrcLoc
 import Monad
 import Pretty
 import Fixity
+import Layout
 
 import qualified Data.Text as T
 import Control.Monad (unless)
@@ -242,15 +243,6 @@ pushVLBrace = do
     il <- getIndentLevels
     setIndentLevels (0 : il)
 
-popLayoutLevel :: Located Token -> Parser Span
-popLayoutLevel t@(L sp _) = do
-    il <- getIndentLevels
-    case il of
-        m : ms | m /= 0 -> do
-            setIndentLevels ms
-            return sp
-        _ -> lift $ throwPsError sp $ "parse error"
-
 splitModid :: Located T.Text -> [Name]
 splitModid = loop 0 . ((`T.snoc` '.') <$>)
   where
@@ -262,6 +254,9 @@ splitModid = loop 0 . ((`T.snoc` '.') <$>)
             then conName (T.take cnt t) : loop 0 (L sp (T.drop (cnt + 1) t))
             else loop (cnt + 1) (L sp t)
 
+----------------------------------------------------------------
+-- combine Located
+----------------------------------------------------------------
 sL :: Located a -> b -> Located b
 sL loc = L (getSpan loc)
 
@@ -272,7 +267,7 @@ sLLn :: Located a -> [Located b] -> c -> Located c
 sLLn loc locs = L (concatSpans (getSpan loc : map getSpan locs))
 
 ----------------------------------------------------------------
--- mkLocated
+-- mk Located
 ----------------------------------------------------------------
 mkLVarId :: Located Token -> Maybe (Located T.Text)
 mkLVarId (L sp (TokVarId t)) = Just (L sp t)

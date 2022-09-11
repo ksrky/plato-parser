@@ -10,5 +10,4 @@ spaces :: Action
 layoutSpaces :: AlexInput -> Int -> Parser (Located Token)
 rightBrace :: Action
 leftBrace :: Action
-pushSemicolon :: Action
 popLayoutLevel :: Located Token -> Parser Span

@@ -4,11 +4,12 @@ import {-# SOURCE #-} Action
 import Error
 import Lexer
 import Monad
+import Pretty
 import SrcLoc
 import Token
 
 import Control.Monad.State
-import Data.Text as T
+import qualified Data.Text as T
 
 ----------------------------------------------------------------
 -- Layout
@@ -20,7 +21,7 @@ layoutKeyword key (pos, _, _, inp) len = do
         setStartCode layout
         ret sp (TokKeyword key)
 
-spaces :: Action
+spaces :: Action -- strat code = 0
 spaces ainp@(pos, _, _, inp) len = do
         il <- getIndentLevels
         let sp = mkSpan pos inp 0
@@ -51,7 +52,13 @@ layoutSpaces (pos, _, _, inp) len = do
         il <- getIndentLevels
         let sp = mkSpan pos inp 0
         case il of
-                _ | T.unpack inp !! len == ';' -> alexMonadScan
+                _ | T.unpack inp !! len == '{' -> do
+                        -- note: Layout rule
+                        -- If a let, where, do, or of keyword is not followed by the lexeme {,
+                        -- the token {n} is inserted after the keyword, where n is the indentation
+                        -- of the next lexeme if there is one, or 0 if the end of file has been reached.
+                        setStartCode code
+                        alexMonadScan
                 m : ms | len > m -> do
                         -- note: Layout rule
                         -- L ({n} : ts) (m : ms)   = {  :  (L ts (n : m : ms))         if n > m
@@ -69,6 +76,7 @@ layoutSpaces (pos, _, _, inp) len = do
 
 rightBrace :: Action
 rightBrace (pos, _, _, inp) len = do
+        setStartCode code
         let sp = mkSpan pos inp len
         il <- getIndentLevels
         case il of
@@ -85,23 +93,29 @@ leftBrace :: Action
 leftBrace (pos, _, _, inp) len = do
         -- note: Layout rule
         -- L ({ : ts) ms           = {  :  (L ts (0 : ms))
+        setStartCode code
         let sp = mkSpan pos inp len
         il <- getIndentLevels
         setIndentLevels (0 : il)
         return $ L sp (TokSymbol SymLBrace)
-
-pushSemicolon :: Action
-pushSemicolon (pos, _, _, inp) _ = do
-        setStartCode 0
-        ret (mkSpan pos inp 0) (TokSymbol SymSemicolon)
 
 -- Layout rule
 --      L (t : ts) (m : ms)     = }  :  (L (t : ts) ms)             if m≠0 and parse-error(t)
 popLayoutLevel :: Located Token -> Parser Span
 popLayoutLevel (L sp _) = do
         il <- getIndentLevels
+        ts <- getPrevTokens
+        scd <- getStartCode
         case il of
                 m : ms | m /= 0 -> do
                         setIndentLevels ms
                         return sp
-                _ -> lift $ throwPsError sp "parse error"
+                _ ->
+                        lift $
+                                throwPsError sp $
+                                        "parse error" ++ "'\n"
+                                                ++ unwords (map pretty (reverse ts))
+                                                ++ "\nstart code="
+                                                ++ show scd
+                                                ++ "\nindent levels="
+                                                ++ show il

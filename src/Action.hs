@@ -44,7 +44,7 @@ mkSpan pos inp len = Span (mkLoc pos) (mkLoc $ movePosn pos inp len)
 ----------------------------------------------------------------
 -- Token
 ----------------------------------------------------------------
--- note: Alex does not match empty text, so the additional rule specific to the case n==0 is needed
+-- note: Alex does not match empty text, so the additional rule specific to the case n=0 is needed
 token :: (T.Text -> Token) -> Action
 token f ainp@(pos, _, _, inp) len = do
         let sp = mkSpan pos inp len
@@ -62,13 +62,13 @@ token f ainp@(pos, _, _, inp) len = do
                                 ret sp (TokSymbol SymSemicolon)
                         | m > 0 -> do
                                 -- note: Layout rule
-                                -- L (< 0 >: ts) (m : ms)  = `close brace`  :  (L (< 0 >: ts) ms)          if m > 0
+                                -- L (< 0 >: ts) (m : ms)  = }  :  (L (< 0 >: ts) ms)          if m > 0
                                 setIndentLevels ms
                                 setInput ainp
                                 ret sp (TokSymbol SymVRBrace)
                 [] -> do
                         ---------- note: Layout rule
-                        ---------- L (< 0 >: ts) []        = L ts ms
+                        ---------- L (< 0 >: ts) []        = L ts []
                         setStartCode code
                         setInput ainp
                         ret sp (TokSymbol SymSemicolon)

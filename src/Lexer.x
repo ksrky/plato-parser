@@ -13,11 +13,9 @@ import Error
 
 import Control.Monad
 import Control.Monad.State
-import Data.Text as T
 }
 
 
-$tab = \t
 $nl = [\n\r\f]
 $white_nonl = $white # \n
 
@@ -54,10 +52,10 @@ tokens :-
 <layout> $white_nonl*           { layoutSpaces }
 
 -- | line comment
-<0, code> "--" \-* ~$symbol .*        ;
+<0, code> "--" \-* ~$symbol .*  ;
 
 -- | block comment
-<0, code, comment> "{-"               { beginComment }
+<0, code, comment> "{-"         { beginComment }
 <comment> "-}"                  { endComment }
 <comment> $printable+           ;
 <comment> $nl+                  ;
@@ -65,16 +63,16 @@ tokens :-
 
 -- | keyword
 <code> case                     { keyword KwCase }
-<0, code> data                        { keyword KwData }
+<0, code> data                  { keyword KwData }
 <code> forall                   { keyword KwForall }
-<0, code> import                      { keyword KwImport }
-<0, code> infix                       { keyword KwInfix }
-<0, code> infixl                      { keyword KwInfixL }
-<0, code> infixr                      { keyword KwInfixR }
+<0, code> import                { keyword KwImport }
+<0, code> infix                 { keyword KwInfix }
+<0, code> infixl                { keyword KwInfixL }
+<0, code> infixr                { keyword KwInfixR }
 <code> in                       { keyword KwIn }
 <code> of                       { layoutKeyword KwOf }
 <code> let                      { layoutKeyword KwLet }
-<0, code> module                      { keyword KwModule }
+<0, code> module                { keyword KwModule }
 <code> where                    { layoutKeyword KwWhere }
 
 --| special symbol

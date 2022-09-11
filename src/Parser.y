@@ -70,7 +70,9 @@ int                             { (mkLInt -> Just $$) }
 
 %%
 
-program     : 'module' modid ';' body               { Program (Just $2) (fst $4) (snd $4) }
+program     : ';' program_                          { $2 }
+
+program_    : 'module' modid ';' body               { Program (Just $2) (fst $4) (snd $4) }
             | body                                  { Program Nothing (fst $1) (snd $1) }
 
 body        : impdecls ';' topdecls                 { ($1, reverse $3) }
@@ -79,26 +81,25 @@ body        : impdecls ';' topdecls                 { ($1, reverse $3) }
 impdecls    :: { [Located ImpDecl] }
             : impdecls ';' impdecl                  { $3 : $1 }
 			| impdecl								{ [$1] }
-            | {- empty -}                           { [] }
 
 impdecl     :: { Located ImpDecl }
-            : 'import' modid                        { sLL (uLoc $1) $2 (ImpDecl $2) }
+            : 'import' modid                        { cSL $1 $2 (ImpDecl $2) }
 
 modid       :: { Located ModuleName }
-            : qconid                                { sL $1 (ModuleName (splitModid $1)) }
-            | conid                                 { sL $1 (ModuleName (splitModid $1)) }
+            : qconid                                { cL $1 (ModuleName (splitModid $1)) }
+            | conid                                 { cL $1 (ModuleName (splitModid $1)) }
 
 -- | Declarations
 topdecls    :: { [Located TopDecl] }
             : topdecls ';' topdecl                  { $3 : $1 }
-            | {- empty -}                           { [] }
+            | topdecl                               { [$1] }
 
 topdecl     :: { Located TopDecl }
-            : 'data' conid tyvars '=' constrs       { sLLn (uLoc $1) (snd $ last $5) (DataDecl (mkLtyconName $2) $3 $5) }
-            | 'data' conid tyvars                   { sLLn (uLoc $1) $3 (DataDecl (mkLtyconName $2) $3 []) }
-            | conid tyvars '=' type                 { sLL $1 $4 (TypeDecl (mkLtyconName $1) $2 $4) }
+            : 'data' conid tyvars '=' constrs       { cSLn $1 (snd $ last $5) (DataDecl (mkLtyconName $2) $3 $5) }
+            | 'data' conid tyvars                   { cSLn $1 $3 (DataDecl (mkLtyconName $2) $3 []) }
+            | conid tyvars '=' type                 { cLL $1 $4 (TypeDecl (mkLtyconName $1) $2 $4) }
             | fixdecl                               { $1 }
-            | decl                                  { sL $1 (Decl $1) }
+            | decl                                  { cL $1 (Decl $1) }
 
 fixdecl     :: { Located TopDecl }
             : 'infix' int op                        {% setFixity $3 $2 Nonfix >> return (L $1 FixDecl) }
@@ -110,11 +111,11 @@ decls       :: { [Located Decl] }
             | decl ';' decls                        { $1 : $3 }
 
 decl        :: { Located Decl }
-            : var ':' type                        	{ sLL $1 $3 (FuncTyDecl $1 $3) }
-            | '(' varsym ')' ':' type               { sLL (uLoc $1) $5 (FuncTyDecl (mkLvarName $2) $5) }
-            | var vars '=' expr                   	{ sLL $1 $4 (FuncDecl $1 $2 $4) }
-            | '(' varsym ')' vars '=' expr          { sLL (uLoc $1) $6 (FuncDecl (mkLvarName $2) $4 $6) }
-			| var varsym var '=' expr				{ sLL $1 $5 (FuncDecl (mkLvarName $2) ([$1, $3]) $5) }
+            : var ':' type                        	{ cLL $1 $3 (FuncTyDecl $1 $3) }
+            | '(' varsym ')' ':' type               { cSL $1 $5 (FuncTyDecl (mkLvarName $2) $5) }
+            | var vars '=' expr                   	{ cLL $1 $4 (FuncDecl $1 $2 $4) }
+            | '(' varsym ')' vars '=' expr          { cSL $1 $6 (FuncDecl (mkLvarName $2) $4 $6) }
+			| var varsym var '=' expr				{ cLL $1 $5 (FuncDecl (mkLvarName $2) ([$1, $3]) $5) }
 
 -- | Types
 types       :: { [Located Type] }
@@ -122,19 +123,19 @@ types       :: { [Located Type] }
             | {- empty -}                           { [] }
 
 type        :: { Located Type }
-            : '{' tyvar tyvars '}' '->' type        { sLL (uLoc $1) $6 (AllType ($2 : $3) $6) }
-            | btype '->' type                       { sLL $1 $3 (ArrType $1 $3) }
+            : '{' tyvar tyvars '}' '->' type        { cSL $1 $6 (AllType ($2 : $3) $6) }
+            | btype '->' type                       { cLL $1 $3 (ArrType $1 $3) }
             | '(' type ')'                          { $2 }
             | btype                                 { $1 }
 
 btype       :: { Located Type }
-            : btype atype                           { sLL $1 $2 (AppType $1 $2) }
+            : btype atype                           { cLL $1 $2 (AppType $1 $2) }
             | atype                                 { $1 }
 
 atype       :: { Located Type }
             : '(' type ')'                          { $2 }
-            | conid                                 { sL $1 (ConType (mkLtyconName $1)) }
-            | varid                                 { sL $1 (VarType (mkLtyvarName $1)) }
+            | conid                                 { cL $1 (ConType (mkLtyconName $1)) }
+            | varid                                 { cL $1 (VarType (mkLtyvarName $1)) }
 
 constrs     :: { [(Located Name, [Located Type])] }
             : constr '|' constrs                    { $1 : $3 }
@@ -161,25 +162,25 @@ expr        :: { Located Expr }
             : infixexpr                             { $1 }
 
 infixexpr   :: { Located Expr }
-            : lexpr op infixexpr                    { sLL $1 $3 (OpExpr $1 $2 $3) }
+            : lexpr op infixexpr                    { cLL $1 $3 (OpExpr $1 $2 $3) }
             | lexpr                                 { $1 }
 
 lexpr       :: { Located Expr }
-            : '\\' var vars '->' expr               { sLL (uLoc $1) $5 (LamExpr ($2 : $3) $5) }
-            | 'let' '{' decls '}' 'in' expr         { sLL (uLoc $1) $6 (LetExpr $3 $6) }
-            | 'let' 'v{' decls close 'in' expr      { sLL (uLoc $1) $6 (LetExpr $3 $6) }
+            : '\\' var vars '->' expr               { cSL $1 $5 (LamExpr ($2 : $3) $5) }
+            | 'let' '{' decls '}' 'in' expr         { cSL $1 $6 (LetExpr $3 $6) }
+            | 'let' 'v{' decls close 'in' expr      { cSL $1 $6 (LetExpr $3 $6) }
             | 'case' expr 'of' '{' alts '}'         { L (combineSpans $1 $6) (CaseExpr $2 $5) }
             | 'case' expr 'of' 'v{' alts close      { L (combineSpans $1 $6) (CaseExpr $2 $5) }
             | fexpr                                 { $1 }
 
 fexpr       :: { Located Expr }
-            : fexpr aexpr                           { sLL $1 $2 (AppExpr $1 $2) }
+            : fexpr aexpr                           { cLL $1 $2 (AppExpr $1 $2) }
             | aexpr                                 { $1 }
 
 aexpr       :: { Located Expr }
             : '(' expr ')'                          { L (combineSpans $1 $3) (Factor $2) }
-            | varid                                 { sL $1 (VarExpr (mkLvarName $1)) }
-            | conid                                 { sL $1 (VarExpr (mkLconName $1)) }
+            | varid                                 { cL $1 (VarExpr (mkLvarName $1)) }
+            | conid                                 { cL $1 (VarExpr (mkLconName $1)) }
 
 vars        :: { [Located Name] }
             : var vars                              { $1 : $2 }
@@ -199,11 +200,11 @@ alt         :: { (Located Pat, Located Expr) }
 
 -- | Patterns
 pat         :: { Located Pat }
-            : lpat consym pat                       { sLL $1 $3 (ConPat (mkLconName $2) ([$1, $3])) }
+            : lpat consym pat                       { cLL $1 $3 (ConPat (mkLconName $2) ([$1, $3])) }
             | lpat                                  { $1 }
 
 lpat		:: { Located Pat }
-			: conid apats                           { sLLn $1 $2 (ConPat (mkLconName $1) $2) }
+			: conid apats                           { cLLn $1 $2 (ConPat (mkLconName $1) $2) }
             | apat									{ $1 }	
 
 apats       :: { [Located Pat] }
@@ -212,8 +213,8 @@ apats       :: { [Located Pat] }
 
 apat        :: { Located Pat }
             : '(' pat ')'                         	{ $2 }
-            | conid                               	{ sL $1 (ConPat (mkLconName $1) []) }
-            | varid                                 { sL $1 (VarPat (mkLvarName $1)) }
+            | conid                               	{ cL $1 (ConPat (mkLconName $1) []) }
+            | varid                                 { cL $1 (VarPat (mkLvarName $1)) }
             | '_'                                   { L $1 WildPat }
 
 -- | for parser-error(t) rule
@@ -238,11 +239,6 @@ setFixity lop@(L _ op) (L sp prec) fix = do
     unless (minPrec <= prec && prec <= maxPrec) $ lift $ throwPsError sp $ "invalid precedence " ++ show prec
     setOpDict $ M.insert op (Op lop prec fix) opdict
 
-pushVLBrace :: Parser ()
-pushVLBrace = do
-    il <- getIndentLevels
-    setIndentLevels (0 : il)
-
 splitModid :: Located T.Text -> [Name]
 splitModid = loop 0 . ((`T.snoc` '.') <$>)
   where
@@ -257,14 +253,20 @@ splitModid = loop 0 . ((`T.snoc` '.') <$>)
 ----------------------------------------------------------------
 -- combine Located
 ----------------------------------------------------------------
-sL :: Located a -> b -> Located b
-sL loc = L (getSpan loc)
+cL :: Located a -> b -> Located b
+cL loc = L (getSpan loc)
 
-sLL :: Located a -> Located b -> c -> Located c
-sLL loc1 loc2 = L (combineSpans (getSpan loc1) (getSpan loc2))
+cSL :: Span -> Located a -> b -> Located b
+cSL sp loc = L (combineSpans sp (getSpan loc))
 
-sLLn :: Located a -> [Located b] -> c -> Located c
-sLLn loc locs = L (concatSpans (getSpan loc : map getSpan locs))
+cLL :: Located a -> Located b -> c -> Located c
+cLL loc1 loc2 = L (combineSpans (getSpan loc1) (getSpan loc2))
+
+cSLn :: Span -> [Located a] -> b -> Located b
+cSLn sp locs = L (combineSpans sp (concatSpans $ map getSpan locs))
+
+cLLn :: Located a -> [Located b] -> c -> Located c
+cLLn loc locs = L (concatSpans (getSpan loc : map getSpan locs))
 
 ----------------------------------------------------------------
 -- mk Located
@@ -306,8 +308,8 @@ mkLtyconName :: Located T.Text -> Located Name
 mkLtyconName (L sp t)= L sp (tyconName t)
 
 mkLVarExpr :: Located Name -> Located Expr
-mkLVarExpr x = sL x (VarExpr x)
+mkLVarExpr x = cL x (VarExpr x)
 
 mkLAppExpr :: Located Expr -> Located Expr -> Located Expr
-mkLAppExpr x y = sLL x y (AppExpr x y)
+mkLAppExpr x y = cLL x y (AppExpr x y)
 }

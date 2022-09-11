@@ -108,5 +108,5 @@ instance Pretty Symbol where
         pretty SymSemicolon = ";"
         pretty SymUScore = "_"
         pretty SymVBar = "|"
-        pretty SymVLBrace = "{"
-        pretty SymVRBrace = "}"
+        pretty SymVLBrace = "v{"
+        pretty SymVRBrace = "v}"

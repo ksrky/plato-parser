@@ -26,7 +26,7 @@ length l = case l of
     Nil -> Zero
     x :: xs -> Succ (length xs)
 
-map : forall a b. (a -> b) -> List a -> List b
+map : {a b} -> (a -> b) -> List a -> List b
 map f l = case l of
     Nil -> Nil
     x :: xs -> f x :: map f xs

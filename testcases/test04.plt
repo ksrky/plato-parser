@@ -4,7 +4,7 @@ import Plato.Bool
 
 data Nat = Zero | Succ Nat
 
-(==) : Nat -> Nat -> Bool;
+(==) : Nat -> Nat -> Bool
 m == n = case m of
     Succ m' -> case n of
         Succ n' -> m' == n'

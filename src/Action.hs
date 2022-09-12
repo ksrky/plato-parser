@@ -3,7 +3,7 @@
 module Action where
 
 import Error
-import Lexer
+import {-# SOURCE #-} Lexer
 import Monad
 import SrcLoc
 import Token

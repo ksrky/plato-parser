@@ -6,8 +6,8 @@ module Lexer where
 
 import Monad
 import Token
-import {-# SOURCE #-} Action
-import {-# SOURCE #-} Layout
+import Action
+import Layout
 import SrcLoc
 import Error
 

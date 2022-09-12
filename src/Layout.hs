@@ -1,8 +1,8 @@
 module Layout where
 
-import {-# SOURCE #-} Action
+import Action
 import Error
-import Lexer
+import {-# SOURCE #-} Lexer
 import Monad
 import Pretty
 import SrcLoc
@@ -46,7 +46,7 @@ spaces ainp@(pos, _, _, inp) len = do
                         setStartCode code
                         alexMonadScan
 
-layoutSpaces :: AlexInput -> Int -> Parser (Located Token)
+layoutSpaces :: Action
 layoutSpaces (pos, _, _, inp) len = do
         setStartCode code
         il <- getIndentLevels

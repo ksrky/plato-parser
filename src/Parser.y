@@ -107,8 +107,9 @@ fixdecl     :: { Located TopDecl }
             | 'infixr' int op                       {% setFixity $3 $2 Rightfix >> return (L $1 FixDecl) }
 
 decls       :: { [Located Decl] }
-            : decl ';'                              { [$1] }
-            | decl ';' decls                        { $1 : $3 }
+            : decl ';' decls                        { $1 : $3 }
+            | decl                                  { [$1] }
+            | {- empty -}                           { [] }
 
 decl        :: { Located Decl }
             : var ':' type                        	{ cLL $1 $3 (FuncTyDecl $1 $3) }
@@ -227,11 +228,11 @@ parseError :: Located Token -> Parser a
 parseError (L sp tok) = do
     ts <- getPrevTokens
     scd <- getStartCode
-    il <- getIndentLevels
+    lev <- getIndentLevels
     lift $ throwPsError sp $ "parse error at '" ++ pretty tok
         ++ "'\n" ++ unwords (map pretty (reverse ts))
         ++ "\nstart code=" ++ show scd
-        ++ "\nindent levels=" ++ show il
+        ++ "\nindent levels=" ++ show lev
 
 setFixity :: Located Name -> Located Int -> Fixity -> Parser ()
 setFixity lop@(L _ op) (L sp prec) fix = do

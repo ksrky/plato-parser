@@ -3,45 +3,45 @@ module Syntax where
 import Name
 import SrcLoc
 
-type PsLName = Located Name
-type PsLExpr = Located Expr
-type PsLPat = Located Pat
-type PsLType = Located Type
-type PsLDecl = Located Decl
+type LName = Located Name
+type LExpr = Located Expr
+type LPat = Located Pat
+type LType = Located Type
+type LDecl = Located Decl
 
 data Expr
-        = VarExpr PsLName
-        | AppExpr PsLExpr PsLExpr
-        | OpExpr PsLExpr PsLName PsLExpr
-        | LamExpr [PsLName] PsLExpr
-        | LetExpr [PsLDecl] PsLExpr
-        | CaseExpr PsLExpr [(PsLPat, PsLExpr)]
-        | Factor PsLExpr -- removed after fixity resolution
+        = VarExpr LName
+        | AppExpr LExpr LExpr
+        | OpExpr LExpr LName LExpr
+        | LamExpr [LName] LExpr
+        | LetExpr [LDecl] LExpr
+        | CaseExpr LExpr [(LPat, LExpr)]
+        | Factor LExpr -- removed after fixity resolution
         deriving (Eq, Show)
 
 data Pat
-        = ConPat PsLName [PsLPat]
-        | VarPat PsLName
+        = ConPat LName [LPat]
+        | VarPat LName
         | WildPat
         deriving (Eq, Show)
 
 data Type
-        = ConType PsLName
-        | VarType PsLName
-        | AppType PsLType PsLType
-        | ArrType PsLType PsLType
-        | AllType [PsLName] PsLType
+        = ConType LName
+        | VarType LName
+        | AppType LType LType
+        | ArrType LType LType
+        | AllType [LName] LType
         deriving (Eq, Show)
 
 data Decl
-        = FuncDecl PsLName [PsLName] PsLExpr
-        | FuncTyDecl PsLName PsLType
+        = FuncDecl LName [LName] LExpr
+        | FuncTyDecl LName LType
         deriving (Eq, Show)
 
 data TopDecl
-        = DataDecl PsLName [PsLName] [(PsLName, [PsLType])]
-        | TypeDecl PsLName [PsLName] PsLType
-        | Decl PsLDecl
+        = DataDecl LName [LName] [(LName, [LType])]
+        | TypeDecl LName [LName] LType
+        | Decl LDecl
         | FixDecl
         deriving (Eq, Show)
 

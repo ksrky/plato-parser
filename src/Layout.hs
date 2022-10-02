@@ -46,13 +46,8 @@ spaces ainp@(pos, _, _, inp) len = do
                         setStartCode code
                         alexMonadScan
 
-<<<<<<< HEAD
-layoutSpaces :: Action
-layoutSpaces (pos, _, _, inp) len = do
-=======
 layoutSpaces :: AlexInput -> Int -> Parser (Located Token)
 layoutSpaces (pos@(PsPosn _ _ col), _, _, inp) len = do
->>>>>>> 03b2e6fe0de69228e5731d94dcb3f15a887312c3
         setStartCode code
         lev <- getIndentLevels
         let sp = mkSpan pos inp 0

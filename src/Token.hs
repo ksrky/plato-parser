@@ -64,6 +64,7 @@ commonSymbols =
         , ("=", SymEqual)
         , ("|", SymVBar)
         ]
+
 instance Pretty Token where
         pretty (TokKeyword k) = pretty k
         pretty (TokSymbol t) = pretty t

@@ -21,11 +21,11 @@ layoutKeyword key (pos, _, _, inp) len = do
         setStartCode layout
         ret sp (TokKeyword key)
 
-spaces :: Action -- strat code = 0
+spaces :: Action -- start code = 0
 spaces ainp@(pos, _, _, inp) len = do
-        il <- getIndentLevels
+        lev <- getIndentLevels
         let sp = mkSpan pos inp 0
-        case il of
+        case lev of
                 m : ms
                         | m == len -> do
                                 -- note: Layout rule
@@ -36,7 +36,7 @@ spaces ainp@(pos, _, _, inp) len = do
                         | len < m -> do
                                 -- note: Layout rule
                                 -- L (< n >: ts) (m : ms)  = }  :  (L (< n >: ts) ms)          if n < m
-                                setStartCode 0
+                                setStartCode code
                                 setInput ainp
                                 setIndentLevels ms
                                 ret sp (TokSymbol SymVRBrace)
@@ -46,12 +46,18 @@ spaces ainp@(pos, _, _, inp) len = do
                         setStartCode code
                         alexMonadScan
 
+<<<<<<< HEAD
 layoutSpaces :: Action
 layoutSpaces (pos, _, _, inp) len = do
+=======
+layoutSpaces :: AlexInput -> Int -> Parser (Located Token)
+layoutSpaces (pos@(PsPosn _ _ col), _, _, inp) len = do
+>>>>>>> 03b2e6fe0de69228e5731d94dcb3f15a887312c3
         setStartCode code
-        il <- getIndentLevels
+        lev <- getIndentLevels
         let sp = mkSpan pos inp 0
-        case il of
+            n = col - 1 + len
+        case lev of
                 _ | T.unpack inp !! len == '{' -> do
                         -- note: Layout rule
                         -- If a let, where, do, or of keyword is not followed by the lexeme {,
@@ -59,27 +65,28 @@ layoutSpaces (pos, _, _, inp) len = do
                         -- of the next lexeme if there is one, or 0 if the end of file has been reached.
                         setStartCode code
                         alexMonadScan
-                m : ms | len > m -> do
+                m : ms | n > m -> do
                         -- note: Layout rule
                         -- L ({n} : ts) (m : ms)   = {  :  (L ts (n : m : ms))         if n > m
-                        setIndentLevels (len : m : ms)
+                        setIndentLevels (n : m : ms)
                         ret sp (TokSymbol SymVLBrace)
-                [] | len > 0 -> do
+                [] | n > 0 -> do
                         -- note: Layout rule
                         -- L ({n} : ts) []         = {  :  (L ts [n])                  if n > 0
-                        setIndentLevels [len]
+                        setIndentLevels [n]
                         ret sp (TokSymbol SymVLBrace)
                 _ -> do
                         -- note: Layout rule
                         -- L ({n} : ts) ms         = {  :  }  :  (L (< n >: ts) ms)
-                        ret sp (TokSymbol SymVLBrace) -- tmp:  L sp (TokSymbol SymVRBrace)]
+                        lift $ throwPsError sp "empty block after the layout keyword"
+                        -- todo: ret sp [(TokSymbol SymVLBrace), (TokSymbol SymVRBrace)]
 
 rightBrace :: Action
 rightBrace (pos, _, _, inp) len = do
         setStartCode code
         let sp = mkSpan pos inp len
-        il <- getIndentLevels
-        case il of
+        lev <- getIndentLevels
+        case lev of
                 0 : _ -> do
                         -- note: Layout rule
                         -- L (} : ts) (0 : ms)     = }  :  (L ts ms)
@@ -95,19 +102,19 @@ leftBrace (pos, _, _, inp) len = do
         -- L ({ : ts) ms           = {  :  (L ts (0 : ms))
         setStartCode code
         let sp = mkSpan pos inp len
-        il <- getIndentLevels
-        setIndentLevels (0 : il)
+        lev <- getIndentLevels
+        setIndentLevels (0 : lev)
         return $ L sp (TokSymbol SymLBrace)
 
--- Layout rule
---      L (t : ts) (m : ms)     = }  :  (L (t : ts) ms)             if m≠0 and parse-error(t)
 popLayoutLevel :: Located Token -> Parser Span
 popLayoutLevel (L sp _) = do
-        il <- getIndentLevels
+        lev <- getIndentLevels
         ts <- getPrevTokens
         scd <- getStartCode
-        case il of
+        case lev of
                 m : ms | m /= 0 -> do
+                        -- note: Layout rule
+                        -- L (t : ts) (m : ms)     = }  :  (L (t : ts) ms)             if m≠0 and parse-error(t)
                         setIndentLevels ms
                         return sp
                 _ ->
@@ -118,4 +125,4 @@ popLayoutLevel (L sp _) = do
                                                 ++ "\nstart code="
                                                 ++ show scd
                                                 ++ "\nindent levels="
-                                                ++ show il
+                                                ++ show lev

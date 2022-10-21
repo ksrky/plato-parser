@@ -53,7 +53,7 @@ layoutSpaces (pos@(PsPosn _ _ col), _, _, inp) len = do
         let sp = mkSpan pos inp 0
             n = col - 1 + len
         case lev of
-                _ | T.unpack inp !! len == '{' -> do
+                _ | T.length inp > len && T.unpack inp !! len == '{' -> do
                         -- note: Layout rule
                         -- If a let, where, do, or of keyword is not followed by the lexeme {,
                         -- the token {n} is inserted after the keyword, where n is the indentation
@@ -73,8 +73,8 @@ layoutSpaces (pos@(PsPosn _ _ col), _, _, inp) len = do
                 _ -> do
                         -- note: Layout rule
                         -- L ({n} : ts) ms         = {  :  }  :  (L (< n >: ts) ms)
-                        lift $ throwPsError sp "empty block after the layout keyword"
-                        -- todo: ret sp [(TokSymbol SymVLBrace), (TokSymbol SymVRBrace)]
+                        setIndentLevels [n]
+                        ret sp (TokSymbol SymVLBrace)
 
 rightBrace :: Action
 rightBrace (pos, _, _, inp) len = do
@@ -82,9 +82,10 @@ rightBrace (pos, _, _, inp) len = do
         let sp = mkSpan pos inp len
         lev <- getIndentLevels
         case lev of
-                0 : _ -> do
+                0 : ms -> do
                         -- note: Layout rule
                         -- L (} : ts) (0 : ms)     = }  :  (L ts ms)
+                        setIndentLevels ms
                         ret sp (TokSymbol SymRBrace)
                 _ -> do
                         -- note: Layout rule
